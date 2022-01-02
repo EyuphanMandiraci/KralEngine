@@ -23,10 +23,9 @@ class KralEngine:
 
         pygame.init()
         self.clock = pygame.time.Clock()
-
-        pygame.display.set_caption(self.title)
         self.window = pygame.display.set_mode(self.size)
         self.window.fill(self.color)
+        pygame.display.set_caption(self.title)
 
     def run(self):
         while self.running:
@@ -44,6 +43,8 @@ class KralEngine:
                 __main__.update()
             for i in self.objects:
                 i.update()
+            if self.debug:
+                pygame.display.set_caption(self.title + " " + str(int(self.clock.get_fps())))
         pygame.quit()
         quit()
 

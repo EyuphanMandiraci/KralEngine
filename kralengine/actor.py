@@ -1,65 +1,61 @@
 import pygame
-from kralengine import KralEngine
+import kralengine as ke
+import logging
+import os
+
+import __main__
 
 
 class Actor:
-    def __init__(self, window: KralEngine, shape=None,
-                 size=(100, 100), pos=(0, 0), color=(0, 0, 0), atype="object", image=None):
-
-        self.window = window
-        self.shape = shape
-        self.size = size
-        self.width = self.size[0]
-        self.height = self.size[1]
-        self.pos = pos
-        self.x = self.pos[0]
-        self.y = self.pos[1]
-        self.color = color
-        self.type = atype
-        self.image = image
+    def __init__(self, window: ke.KralEngine, atype, shape, pos, size, color=(0, 0, 0)):
+        self.logger = logging.getLogger(str(id(self)) + " " + os.path.basename(__main__.__file__))
+        # Logger
+        c_handler = logging.StreamHandler()
+        f_handler = logging.FileHandler('file.log')
+        c_handler.setLevel(logging.WARNING)
+        f_handler.setLevel(logging.ERROR)
+        c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+        f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        c_handler.setFormatter(c_format)
+        f_handler.setFormatter(f_format)
+        self.logger.addHandler(c_handler)
+        self.logger.addHandler(f_handler)
 
         self.drawed = False
-
-        if image is not None:
-            self.image = pygame.image.load(image)
-            self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-            if self.size == "image":
-                self.rect = pygame.Rect(self.x, self.y, self.image.get_width(), self.image.get_height())
-                self.image = pygame.transform.scale(self.image, self.image.get_size())
+        self.animate = False
+        self.animations = {}
+        self.atype = atype
+        self.shape = shape
+        self.pos = pos
+        self.size = size
+        self.window = window
+        self.rect = pygame.Rect(0, 0, 0, 0)
+        self.color = color
+        self.image = None
         if hasattr(self.window, "objects"):
             self.window.objects.append(self)
 
     def draw(self):
-        self.drawed = True
-        if self.type == "object":
-            if self.size == "image":
-                if self.window.debug:
-                    print("DEBUG - ACTOR: Size is undefined!")
-            else:
-                rect = pygame.Rect(self.x, self.y, self.width, self.height)
-                if self.shape == "rect":
-                    if hasattr(self.window, "window"):
-                        pygame.draw.rect(self.window.window, self.color, rect)
-                    else:
-                        pygame.draw.rect(self.window, self.color, rect)
-                elif self.shape == "ellipse":
-                    if hasattr(self.window, "window"):
-                        pygame.draw.ellipse(self.window.window, self.color, rect)
-                    else:
-                        pygame.draw.ellipse(self.window, self.color, rect)
-                else:
-                    if self.window.debug:
-                        print(f"DEBUG - ACTOR: Incorrect shape. Shape can "
-                              f"be 'rect' or 'ellipse'. Your shape is '{self.shape}'!")
-        elif self.type == "sprite":
-            if self.image is None:
-                if self.window.debug:
-                    print("DEBUG - ACTOR: Image is undefined!")
-            else:
+        if type(self.atype()) == ke.IMAGE:
+            try:
+                self.image = pygame.image.load(self.shape.getFullPath())
+                if type(self.size) == ke.SIZE:
+                    self.image = pygame.transform.scale(self.image, self.size.get_size())
                 self.window.window.blit(self.image, self.pos)
+                self.drawed = True
+            except:
+                self.logger.error("Image can't load!")
+                self.drawed = False
+        elif type(self.atype()) == ke.OBJECT:
+            try:
+                if type(self.shape()) == ke.RECT:
+                    self.rect = pygame.Rect(self.pos[0], self.pos[1], self.size.get_width(), self.size.get_height())
+                    pygame.draw.rect(self.window.window, self.color, self.rect)
+                    self.drawed = True
+            except:
+                self.logger.error("Object can't draw!")
+                self.drawed = False
 
     def update(self):
-        self.pos = [self.x, self.y]
-        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         if self.drawed:
             self.draw()
