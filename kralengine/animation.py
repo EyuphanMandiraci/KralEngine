@@ -2,31 +2,50 @@ import os
 
 import pygame
 import kralengine as ke
-from typing import Union, Iterable
+from collections.abc import Iterable
+from reportlab.lib import colors
 
 
-class AnimationManager:
-    def __init__(self, window: ke.KralEngine, frames, name, time):
-        self.window = window
-        self.frames = frames
-        temp = []
-        if type(self.frames) == str:
-            self.frames = list(os.walk(self.frames))
-            for i in self.frames[0][2]:
-                temp.append(os.path.join(self.frames[0][0], i))
-            self.frames = temp[::-1]
+class SpriteAnimation:
+    def __init__(self, name, frames, time):
         self.name = name
+        self.frames = frames
         self.time = time
+        self.type = "sprite"
+        temp = []
+        if isinstance(self.frames, list):
+            for frame in self.frames:
+                temp.append(ke.ResourceLocation(frame).getFullPath())
+            self.frames = temp
+        elif isinstance(self.frames, str):
+            for frame in os.listdir(ke.ResourceLocation(self.frames).getFullPath()):
+                temp.append(ke.ResourceLocation(os.path.join(self.frames, frame)).getFullPath())
+            temp = sorted(temp)
+            self.frames = temp
 
-    def getSpriteAnimation(self):
-        return AnimationManager.SpriteAnimation(self)
 
-    class SpriteAnimation:
-        def __init__(self, manager):
-            self.manager = manager
+class ColorAnimation:
+    def __init__(self, from_color, to_color, time):
+        self.from_color = from_color
+        self.to_color = to_color
+        self.length = 256
+        self.color_list = []
+        self.time = time
+        self.type = "color"
+        for i in self.colorRanger():
+            self.color_list.append(list(map(int, list(i.rgb()))))
 
-        def __repr__(self):
-            return f"SpriteAnimation(window={self.manager.window}, frames={self.manager.frames}, " \
-                   f"name={self.manager.name}, time={self.manager.time})"
 
+    def get_list(self):
+        return self.color_list
 
+    def colorRanger(self):
+        temp = []
+        if self.length == 1: return [self.from_color]
+
+        if self.length > 1:
+            lim = self.length - 1
+            for i in range(self.length):
+                temp.append(colors.linearlyInterpolatedColor(colors.Color(*self.from_color),
+                                                             colors.Color(*self.to_color), 0, lim, i))
+        return temp

@@ -1,4 +1,9 @@
+import traceback
+from pprint import pprint
+
 import pygame
+
+import kralengine
 import kralengine as ke
 import logging
 import os
@@ -26,7 +31,7 @@ class Actor:
         self.animations = {}
         self.atype = atype
         self.shape = shape
-        self.pos = pos
+        self.pos = list(pos)
         self.size = size
         self.window = window
         self.rect = pygame.Rect(0, 0, 0, 0)
@@ -38,24 +43,98 @@ class Actor:
     def draw(self):
         if type(self.atype()) == ke.IMAGE:
             try:
-                self.image = pygame.image.load(self.shape.getFullPath())
-                if type(self.size) == ke.SIZE:
-                    self.image = pygame.transform.scale(self.image, self.size.get_size())
-                self.window.window.blit(self.image, self.pos)
+                if self.window.splashscreendone:
+                    if not self.animate and not type(self.shape) == str:
+                        self.shape = self.shape.getFullPath()
+                    elif self.animate:
+                        # pprint(self.animations)
+                        self.shape = self.animations[self.animate]["frames"][
+                            int(self.animations[self.animate]["index"])]
+                        if not int(self.animations[self.animate]["index"]) >= len(
+                                self.animations[self.animate]["frames"]) - 1:
+                            self.animations[self.animate]["index"] += self.animations[self.animate]["time"]
+                        else:
+                            self.animations[self.animate]["index"] = 0
+                    self.image = pygame.image.load(self.shape)
+                    if type(self.size) == ke.SIZE:
+                        self.image = pygame.transform.scale(self.image, self.size.get_size())
+                    if self.animate and self.animations[self.animate]["mirror_x"]:
+                        self.image = pygame.transform.flip(self.image, True, False)
+                    if self.animate and self.animations[self.animate]["mirror_y"]:
+                        self.image = pygame.transform.flip(self.image, False, True)
+                    self.window.window.blit(self.image, self.pos)
                 self.drawed = True
-            except:
+            except Exception as e:
                 self.logger.error("Image can't load!")
                 self.drawed = False
+                print(e)
         elif type(self.atype()) == ke.OBJECT:
             try:
-                if type(self.shape()) == ke.RECT:
-                    self.rect = pygame.Rect(self.pos[0], self.pos[1], self.size.get_width(), self.size.get_height())
-                    pygame.draw.rect(self.window.window, self.color, self.rect)
-                    self.drawed = True
-            except:
+                if self.window.splashscreendone:
+                    if self.animate and self.animations[self.animate]["type"] == "color":
+                        if not ((int(self.animations[self.animate]["index"]) >=
+                                 len(self.animations[self.animate]["colors"]) - 1) or
+                                (int(self.animations[self.animate]["index"]) < 0)):
+                            self.color = self.animations[self.animate]["colors"][self.animations[self.animate]["index"]]
+                            if self.animations[self.animate]["iter-dir"] == "-":
+                                self.animations[self.animate]["index"] -= self.animations[self.animate]["time"]
+                            else:
+                                self.animations[self.animate]["index"] += self.animations[self.animate]["time"]
+                        else:
+                            if self.animations[self.animate]["iteration"] == "infinite-reverse":
+                                if self.animations[self.animate]["iter-dir"] == "+":
+                                    self.animations[self.animate]["index"] -= 1
+                                    self.animations[self.animate]["iter-dir"] = "-"
+                                elif self.animations[self.animate]["iter-dir"] == "-":
+                                    self.animations[self.animate]["index"] += 1
+                                    self.animations[self.animate]["iter-dir"] = "+"
+                            else:
+                                self.animations[self.animate]["index"] = 0
+
+                    if type(self.shape()) == ke.RECT:
+                        self.rect = pygame.Rect(self.pos[0], self.pos[1], self.size.get_width(), self.size.get_height())
+                        pygame.draw.rect(self.window.window, self.color, self.rect)
+                    elif type(self.shape()) == ke.ELLIPSE:
+                        self.rect = pygame.Rect(self.pos[0], self.pos[1], self.size.get_width(), self.size.get_height())
+                        pygame.draw.ellipse(self.window.window, self.color, self.rect)
+                self.drawed = True
+            except Exception as e:
                 self.logger.error("Object can't draw!")
                 self.drawed = False
+                print(e)
 
     def update(self):
         if self.drawed:
             self.draw()
+
+    def addSpriteAnimation(self, name, animation, mirror_x=False, mirror_y=False, iteration="infinite-reverse"):
+        self.animations[name] = {
+            "name": name,
+            "frames": animation.frames,
+            "time": animation.time,
+            "index": 0,
+            "type": animation.type,
+            "mirror_x": mirror_x,
+            "mirror_y": mirror_y,
+            "iteration": iteration
+        }
+
+    def addColorAnimation(self, name, animation, iteration="infinite-reverse"):
+        self.animations[name] = {
+            "name": name,
+            "colors": animation.color_list,
+            "time": animation.time,
+            "index": 0,
+            "type": animation.type,
+            "iteration": iteration,
+            "iter-dir": "+"
+        }
+
+    def playAnimation(self, name):
+        # self.stopAnimation()
+        self.animate = name
+
+    def stopAnimation(self):
+        for k in self.animations.keys():
+            self.animations[k]["index"] = 0
+        self.animate = False

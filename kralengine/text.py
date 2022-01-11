@@ -2,7 +2,7 @@ import pygame
 
 
 class Text:
-    def __init__(self, window, text="KralEngine", pos=(0, 0, 0), color=(0, 0, 0), font="Arial",
+    def __init__(self, window, text="KralEngine", pos=(0, 0), color=(0, 0, 0), font="Arial",
                  font_size=16, font_type: str = "sysfont"):
         pygame.font.init()
 
@@ -28,11 +28,11 @@ class Text:
         self.window.objects.append(self)
 
     def write(self):
+        if self.window.splashscreendone:
+            text = self.font.render(self.text, True, self.color)
+            self.window.window.blit(text, self.pos)
         self.drawed = True
-        text = self.font.render(self.text, False, self.color)
-        self.window.window.blit(text, self.pos)
 
     def update(self):
-        self.pos = [self.x, self.y]
         if self.drawed:
             self.write()
