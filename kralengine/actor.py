@@ -37,6 +37,8 @@ class Actor:
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.color = color
         self.image = None
+        self.colliders = []
+        self.collider_rects = []
         if hasattr(self.window, "objects"):
             self.window.objects.append(self)
 
@@ -106,6 +108,7 @@ class Actor:
     def update(self):
         if self.drawed:
             self.draw()
+        self.updateColliders()
 
     def addSpriteAnimation(self, name, animation, mirror_x=False, mirror_y=False, iteration="infinite-reverse"):
         self.animations[name] = {
@@ -138,3 +141,32 @@ class Actor:
         for k in self.animations.keys():
             self.animations[k]["index"] = 0
         self.animate = False
+
+    def addCollider(self, collider):
+        self.colliders.append(collider)
+        rect = pygame.Rect(self.pos[0] + collider.offset[0], self.pos[1] + collider.offset[1],
+                           collider.width, collider.height)
+        self.collider_rects.append(rect)
+        del rect
+
+    def updateColliders(self):
+        temp = []
+        temp2 = []
+        for cr in self.colliders:
+            temp.append(pygame.Rect(self.pos[0] + cr.offset[0], self.pos[1] + cr.offset[1],
+                                    cr.width, cr.height))
+        for cr in self.colliders:
+            temp2.append(kralengine.BoxCollider(cr.width, cr.height, cr.offset))
+        self.collider_rects = temp
+        self.colliders = temp2
+        del temp
+        del temp2
+
+    def isCollide(self, obj):
+        temp = None
+        for cr in self.collider_rects:
+            temp = (cr.collidelist(obj.collider_rects))
+        if temp == -1:
+            return False
+        else:
+            return True

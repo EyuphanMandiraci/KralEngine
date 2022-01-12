@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='KralEngine',
-    version='1.1',
+    version='1.2',
     packages=['kralengine'],
     package_dir={"kralengine": "kralengine"},
     url='',

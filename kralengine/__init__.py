@@ -11,3 +11,4 @@ from kralengine.size import IMAGE_SIZE, SIZE
 from kralengine.shapes import RECT, ELLIPSE
 from kralengine.utils import ResourceLocation, colorRanger
 from kralengine.light import PointLight
+from kralengine.collider import BoxCollider
